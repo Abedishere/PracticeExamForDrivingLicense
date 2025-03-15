@@ -1,126 +1,370 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import random
 import os
+from datetime import timedelta
 
 
-class QuizApp(tk.Tk):
+class ModernQuizApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Driving Exam Quiz")
-        self.geometry("900x700")
+        self.geometry("1000x750")
+
+        # Set application icon (if available)
+        try:
+            self.iconphoto(True, tk.PhotoImage(file="icon.png"))
+        except:
+            pass
+
+        # Custom colors - Dark mode
+        self.colors = {
+            "primary": "#3498db",  # Blue
+            "secondary": "#2ecc71",  # Green
+            "accent": "#e74c3c",  # Red
+            "bg": "#1e1e2e",  # Dark background
+            "card_bg": "#2d2d3f",  # Slightly lighter background for cards
+            "text": "#ffffff",  # White text
+            "light_text": "#a0a0a0",  # Light gray text
+            "border": "#3d3d4f"  # Slightly lighter border
+        }
+
+        # Configure root window background
+        self.configure(bg=self.colors["bg"])
+
+        # Custom font styles
+        self.fonts = {
+            "heading": ("Helvetica", 20, "bold"),
+            "subheading": ("Helvetica", 16),
+            "body": ("Helvetica", 14),
+            "small": ("Helvetica", 12)
+        }
 
         # 1) Get our 30 random questions (10 from each category)
         self.questions = get_questions()
 
         self.current_question = 0
-        self.user_answers = []  # store the user’s selected answer indices
+        self.user_answers = []  # store the user's selected answer indices
         self.score = 0
         self.time_left = 15 * 60  # 15 minutes in seconds
 
         # Keep references to PhotoImages to avoid garbage collection
         self.photos = []
 
-        # Timer label at the top
-        self.timer_label = tk.Label(self, text="Time left: 15:00", font=("Arial", 16))
-        self.timer_label.pack(pady=10)
-
-        # Main frame for question content
-        self.question_frame = tk.Frame(self)
-        self.question_frame.pack(fill="both", expand=True, padx=20, pady=10)
-
-        self.question_label = tk.Label(
-            self.question_frame, text="", font=("Arial", 14),
-            wraplength=800, justify="left"
-        )
-        self.question_label.pack(pady=10)
-
-        # Label to hold the sign image (if any)
-        self.image_label = tk.Label(self.question_frame)
-        self.image_label.pack(pady=5)
-
-        # Radio buttons for the 3 options (bigger font)
-        self.var = tk.IntVar(value=-1)  # -1 = no selection
-        self.options_frame = tk.Frame(self.question_frame)
-        self.options_frame.pack(pady=10)
-        self.radio_buttons = []
-        for i in range(3):
-            rb = tk.Radiobutton(
-                self.options_frame,
-                text="", variable=self.var, value=i,
-                font=("Arial", 14), wraplength=800,
-                justify="left", padx=20, pady=10
-            )
-            rb.pack(anchor="w")
-            self.radio_buttons.append(rb)
-
-        # Next button to move to next question (bigger)
-        self.next_button = tk.Button(
-            self.question_frame, text="Next", command=self.next_question,
-            state="disabled", font=("Arial", 16), padx=20, pady=10
-        )
-        self.next_button.pack(pady=20)
-
-        # Enable "Next" button when a radio button is selected
-        self.var.trace("w", self.option_selected)
-
-        # Display first question and start the timer
+        self.create_widgets()
         self.display_question()
         self.update_timer()
 
+    def create_widgets(self):
+        """Create all UI widgets with dark mode styling"""
+        # Create main container frame
+        self.main_frame = tk.Frame(self, bg=self.colors["bg"], padx=20, pady=20)
+        self.main_frame.pack(fill="both", expand=True)
+
+        # Header frame with timer and progress info
+        self.header_frame = tk.Frame(self.main_frame, bg=self.colors["bg"])
+        self.header_frame.pack(fill="x", pady=(0, 20))
+
+        # Quiz title
+        self.title_label = tk.Label(
+            self.header_frame,
+            text="Driving License Exam",
+            font=self.fonts["heading"],
+            bg=self.colors["bg"],
+            fg=self.colors["primary"]
+        )
+        self.title_label.pack(side="left")
+
+        # Timer display with icon
+        self.timer_frame = tk.Frame(self.header_frame, bg=self.colors["bg"])
+        self.timer_frame.pack(side="right")
+
+        self.timer_label = tk.Label(
+            self.timer_frame,
+            text="15:00",
+            font=self.fonts["subheading"],
+            bg=self.colors["bg"],
+            fg=self.colors["text"]
+        )
+        self.timer_label.pack(side="right")
+
+        self.timer_icon_label = tk.Label(
+            self.timer_frame,
+            text="⏱️ ",
+            font=self.fonts["subheading"],
+            bg=self.colors["bg"],
+            fg=self.colors["text"]
+        )
+        self.timer_icon_label.pack(side="right", padx=(0, 5))
+
+        # Progress bar and question counter
+        self.progress_frame = tk.Frame(self.main_frame, bg=self.colors["bg"])
+        self.progress_frame.pack(fill="x", pady=(0, 15))
+
+        self.question_counter = tk.Label(
+            self.progress_frame,
+            text="Question 1/30",
+            font=self.fonts["small"],
+            bg=self.colors["bg"],
+            fg=self.colors["light_text"]
+        )
+        self.question_counter.pack(side="left", anchor="w", pady=(0, 5))
+
+        # Configure dark theme for ttk widgets (progressbar)
+        style = ttk.Style()
+        style.theme_use('default')
+        style.configure("TProgressbar",
+                        thickness=10,
+                        background=self.colors["primary"],
+                        troughcolor=self.colors["border"])
+
+        self.progress_bar = ttk.Progressbar(
+            self.progress_frame,
+            orient="horizontal",
+            length=960,
+            mode="determinate",
+            style="TProgressbar"
+        )
+        self.progress_bar.pack(fill="x", pady=(0, 5))
+
+        # Question card with shadow effect
+        self.card_frame = tk.Frame(
+            self.main_frame,
+            bg=self.colors["card_bg"],
+            highlightbackground=self.colors["border"],
+            highlightthickness=1,
+            padx=25,
+            pady=25
+        )
+        self.card_frame.pack(fill="both", expand=True)
+
+        # Category label
+        self.category_label = tk.Label(
+            self.card_frame,
+            text="Category: Signs",
+            font=self.fonts["small"],
+            bg=self.colors["card_bg"],
+            fg=self.colors["light_text"]
+        )
+        self.category_label.pack(anchor="w")
+
+        # Question text
+        self.question_label = tk.Label(
+            self.card_frame,
+            text="",
+            font=self.fonts["subheading"],
+            wraplength=900,
+            justify="left",
+            bg=self.colors["card_bg"],
+            fg=self.colors["text"]
+        )
+        self.question_label.pack(pady=(10, 20), anchor="w")
+
+        # Image frame (for sign images)
+        self.image_frame = tk.Frame(self.card_frame, bg=self.colors["card_bg"])
+        self.image_frame.pack(fill="x", pady=(0, 20))
+
+        self.image_label = tk.Label(self.image_frame, bg=self.colors["card_bg"])
+        self.image_label.pack()
+
+        # Options frame
+        self.options_frame = tk.Frame(self.card_frame, bg=self.colors["card_bg"])
+        self.options_frame.pack(fill="x", pady=(0, 20))
+
+        # Radio button variable
+        self.var = tk.IntVar(value=-1)  # -1 = no selection
+
+        # Custom radio buttons with modern styling
+        self.radio_buttons = []
+        for i in range(3):
+            option_frame = tk.Frame(
+                self.options_frame,
+                bg=self.colors["card_bg"],
+                highlightbackground=self.colors["border"],
+                highlightthickness=1,
+                padx=15,
+                pady=15,
+                cursor="hand2"  # Hand cursor to indicate clickable
+            )
+            option_frame.pack(fill="x", pady=8)
+
+            # Store the option index for click events
+            option_frame.option_index = i
+
+            # Bind click event to the entire frame
+            option_frame.bind("<Button-1>", self.option_frame_clicked)
+
+            rb = tk.Radiobutton(
+                option_frame,
+                variable=self.var,
+                value=i,
+                bg=self.colors["card_bg"],
+                activebackground=self.colors["card_bg"],
+                fg=self.colors["text"],
+                selectcolor=self.colors["card_bg"]
+            )
+            rb.pack(side="left", padx=(0, 10))
+
+            # Also bind the radiobutton to update the parent frame
+            rb.bind("<Button-1>", lambda event, idx=i: self.option_frame_clicked(event, idx))
+
+            option_text = tk.Label(
+                option_frame,
+                text="Option text goes here",
+                font=self.fonts["body"],
+                wraplength=850,
+                justify="left",
+                bg=self.colors["card_bg"],
+                fg=self.colors["text"],
+                cursor="hand2"  # Hand cursor to indicate clickable
+            )
+            option_text.pack(side="left", fill="x", expand=True)
+
+            # Also bind the label to update the parent frame
+            option_text.bind("<Button-1>", lambda event, idx=i: self.option_frame_clicked(event, idx))
+
+            self.radio_buttons.append((rb, option_text, option_frame))
+
+        # Navigation buttons frame
+        self.button_frame = tk.Frame(self.main_frame, bg=self.colors["bg"])
+        self.button_frame.pack(fill="x", pady=(20, 0))
+
+        # Next button
+        self.next_button = tk.Button(
+            self.button_frame,
+            text="Next Question",
+            font=self.fonts["body"],
+            bg=self.colors["primary"],
+            fg=self.colors["text"],
+            activebackground=self.colors["primary"],
+            activeforeground=self.colors["text"],
+            padx=20,
+            pady=10,
+            bd=0,
+            cursor="hand2",
+            command=self.next_question,
+            state="disabled"
+        )
+        self.next_button.pack(side="right")
+
+    def option_frame_clicked(self, event, idx=None):
+        """Handle clicks on the option frame, label, or radio button"""
+        # If idx is provided directly, use it, otherwise get it from the widget
+        if idx is None:
+            # Get the option index from the clicked widget or its parent
+            widget = event.widget
+            if hasattr(widget, 'option_index'):
+                idx = widget.option_index
+            else:
+                # Try to find parent with option_index
+                for parent in (widget.master, widget.master.master):
+                    if hasattr(parent, 'option_index'):
+                        idx = parent.option_index
+                        break
+
+        # Set the radio button value
+        self.var.set(idx)
+
+        # Update the UI
+        self.option_selected()
     def update_timer(self):
-        """Updates the countdown timer every second."""
+        """Updates the countdown timer every second with format MM:SS."""
         mins, secs = divmod(self.time_left, 60)
-        self.timer_label.config(text=f"Time left: {mins:02d}:{secs:02d}")
+        self.timer_label.config(text=f"{mins:02d}:{secs:02d}")
+
+        # Change timer color to red when less than 2 minutes remaining
+        if self.time_left <= 120:
+            self.timer_label.config(fg=self.colors["accent"])
+            self.timer_icon_label.config(fg=self.colors["accent"])
+
         if self.time_left <= 0:
-            messagebox.showinfo("Time's Up!", "Time is up! Answers after this are not counted.")
+            messagebox.showinfo("Time's Up!", "Your time is up! Let's see how you did.")
             self.finish_quiz(time_up=True)
         else:
             self.time_left -= 1
             self.after(1000, self.update_timer)
 
     def display_question(self):
-        """Displays the current question and resets radio button selection."""
+        """Displays the current question with modern styling."""
         if self.current_question < len(self.questions):
             q = self.questions[self.current_question]
+
+            # Update progress indicators
+            progress_percent = (self.current_question / len(self.questions)) * 100
+            self.progress_bar["value"] = progress_percent
+            self.question_counter.config(text=f"Question {self.current_question + 1}/{len(self.questions)}")
+
+            # Update category
+            self.category_label.config(text=f"Category: {q['category']}")
 
             # Clear previous selection
             self.var.set(-1)
             self.next_button.config(state="disabled")
 
+            # Reset option styling - both frame border and text color
+            for rb, label, frame in self.radio_buttons:
+                frame.config(highlightbackground=self.colors["border"])
+                label.config(fg=self.colors["text"])
+
             # Show question text
-            self.question_label.config(text=f"Q{self.current_question + 1}: {q['question']}")
+            self.question_label.config(text=q["question"])
 
             # Show sign image if category is "Signs" and image path is set
             if q["category"] == "Signs" and q["image"]:
                 if os.path.exists(q["image"]):
                     try:
                         img = Image.open(q["image"])
-                        # Resize as desired
-                        img = img.resize((250, 250), Image.ANTIALIAS)
+                        # Resize image maintaining aspect ratio
+                        img = self.resize_image(img, 300)
                         photo = ImageTk.PhotoImage(img)
-                        self.photos.append(photo)  # store reference to avoid GC
-                        self.image_label.config(image=photo, text="")
-                    except Exception:
-                        self.image_label.config(image="", text=f"[Error loading image: {q['image']}]")
+                        self.photos.append(photo)  # store reference
+                        self.image_label.config(image=photo)
+                        self.image_label.pack(pady=(0, 20))
+                    except Exception as e:
+                        self.image_label.config(image="", text=f"Error loading image")
+                        print(f"Image error: {e}")
                 else:
-                    self.image_label.config(image="", text=f"[Image not available: {q['image']}]")
+                    self.image_label.config(image="", text="")
+                    self.image_label.pack_forget()
             else:
-                # Not a sign question, or no image path
+                # No image for this question
                 self.image_label.config(image="", text="")
+                self.image_label.pack_forget()
 
             # Update the radio button text
-            for i, rb in enumerate(self.radio_buttons):
-                rb.config(text=q["options"][i])
+            for i, (rb, label, frame) in enumerate(self.radio_buttons):
+                label.config(text=q["options"][i])
 
         else:
             # No more questions
             self.finish_quiz()
 
-    def option_selected(self, *args):
-        """Enables 'Next' button once the user selects a radio button."""
-        if self.var.get() >= 0:
+    def resize_image(self, img, max_size):
+        """Resize image maintaining aspect ratio."""
+        width, height = img.size
+        if width > height:
+            new_width = max_size
+            new_height = int(height * max_size / width)
+        else:
+            new_height = max_size
+            new_width = int(width * max_size / height)
+
+        return img.resize((new_width, new_height), Image.LANCZOS)
+
+    def option_selected(self):
+        """Highlights the selected option and enables Next button."""
+        selected = self.var.get()
+        if selected >= 0:
+            # Highlight selected option
+            for i, (rb, label, frame) in enumerate(self.radio_buttons):
+                if i == selected:
+                    frame.config(highlightbackground=self.colors["primary"])
+                    label.config(fg=self.colors["primary"])
+                else:
+                    frame.config(highlightbackground=self.colors["border"])
+                    label.config(fg=self.colors["text"])
+
             self.next_button.config(state="normal")
 
     def next_question(self):
@@ -137,56 +381,287 @@ class QuizApp(tk.Tk):
         self.display_question()
 
     def finish_quiz(self, time_up=False):
-        """Clears the screen and shows final results."""
+        """Shows results page with dark mode styling."""
+        # Remove all existing widgets
         for widget in self.winfo_children():
             widget.destroy()
 
-        # Show final grade in large font
-        title_text = f"Final Score: {self.score} / {len(self.questions)}"
+        # Create results container
+        results_frame = tk.Frame(self, bg=self.colors["bg"], padx=30, pady=30)
+        results_frame.pack(fill="both", expand=True)
+
+        # Results header
+        header_frame = tk.Frame(results_frame, bg=self.colors["bg"])
+        header_frame.pack(fill="x", pady=(0, 30))
+
+        # Pass/Fail status
+        pass_threshold = 0.8  # 24/30
+        passed = self.score >= len(self.questions) * pass_threshold
+
+        status_text = "PASSED" if passed else "FAILED"
+        status_color = self.colors["secondary"] if passed else self.colors["accent"]
+
+        status_label = tk.Label(
+            header_frame,
+            text=status_text,
+            font=("Helvetica", 24, "bold"),
+            bg=self.colors["bg"],
+            fg=status_color
+        )
+        status_label.pack(anchor="center")
+
+        # Score display
+        score_label = tk.Label(
+            header_frame,
+            text=f"Your Score: {self.score}/{len(self.questions)} ({int(self.score / len(self.questions) * 100)}%)",
+            font=self.fonts["heading"],
+            bg=self.colors["bg"],
+            fg=self.colors["text"]
+        )
+        score_label.pack(anchor="center", pady=(10, 0))
+
         if time_up:
-            title_text += " (Time Expired)"
-        title_label = tk.Label(self, text=title_text, font=("Arial", 28, "bold"))
-        title_label.pack(pady=10)
+            time_label = tk.Label(
+                header_frame,
+                text="Time Expired",
+                font=self.fonts["small"],
+                bg=self.colors["bg"],
+                fg=self.colors["accent"]
+            )
+            time_label.pack(anchor="center", pady=(5, 0))
 
-        # Show missed questions with question text, user's answer (in red), correct answer (in green)
-        for i, q in enumerate(self.questions):
-            if i >= len(self.user_answers):
-                # The user never reached this question
-                missed_frame = tk.Frame(self)
-                missed_frame.pack(anchor="w", padx=20, pady=5)
+        # Score visualization
+        vis_frame = tk.Frame(results_frame, bg=self.colors["card_bg"], padx=20, pady=20)
+        vis_frame.pack(fill="x", pady=(0, 20))
 
-                q_label = tk.Label(missed_frame, text=f"Q{i + 1}. {q['question']}", font=("Arial", 12, "bold"))
-                q_label.pack(anchor="w")
+        # Create custom progress bar for score visualization
+        vis_canvas = tk.Canvas(
+            vis_frame,
+            width=900,
+            height=30,
+            bg=self.colors["border"],
+            highlightthickness=0
+        )
+        vis_canvas.pack(fill="x", pady=(10, 20))
 
-                your_ans_label = tk.Label(missed_frame, text="Your answer: No answer", fg="red", font=("Arial", 12))
-                your_ans_label.pack(anchor="w")
+        # Draw score bar
+        score_width = int((self.score / len(self.questions)) * 900)
+        vis_canvas.create_rectangle(0, 0, score_width, 30, fill=status_color, outline="")
 
-                correct_label = tk.Label(
-                    missed_frame,
-                    text=f"Correct answer: {q['options'][q['correct']]}",
-                    fg="green", font=("Arial", 12)
-                )
-                correct_label.pack(anchor="w")
+        # Draw passing threshold marker
+        threshold_pos = int(pass_threshold * 900)
+        vis_canvas.create_line(threshold_pos, 0, threshold_pos, 30, fill="#ffffff", width=2, dash=(5, 5))
+
+        # Results breakdown - create a scrollable area for missed questions
+        results_label = tk.Label(
+            results_frame,
+            text="Questions Review (Incorrect First)",
+            font=self.fonts["subheading"],
+            bg=self.colors["bg"],
+            fg=self.colors["text"]
+        )
+        results_label.pack(anchor="w", pady=(10, 5))
+
+        # Create scrollable canvas for review of questions
+        canvas_frame = tk.Frame(results_frame, bg=self.colors["card_bg"], bd=1, relief="solid")
+        canvas_frame.pack(fill="both", expand=True)
+
+        # Add scrollbar with dark styling
+        style = ttk.Style()
+        style.configure("Dark.Vertical.TScrollbar",
+                        background=self.colors["primary"],
+                        troughcolor=self.colors["card_bg"],
+                        arrowcolor=self.colors["text"])
+
+        # Add scrollbar
+        scrollbar = ttk.Scrollbar(canvas_frame, style="Dark.Vertical.TScrollbar")
+        scrollbar.pack(side="right", fill="y")
+
+        # Create canvas
+        canvas = tk.Canvas(
+            canvas_frame,
+            bg=self.colors["card_bg"],
+            yscrollcommand=scrollbar.set,
+            highlightthickness=0
+        )
+        canvas.pack(side="left", fill="both", expand=True)
+
+        # Configure scrollbar
+        scrollbar.config(command=canvas.yview)
+
+        # Create frame inside canvas for questions
+        inner_frame = tk.Frame(canvas, bg=self.colors["card_bg"], padx=20, pady=20)
+        canvas.create_window((0, 0), window=inner_frame, anchor="nw")
+
+        # Enable mousewheel scrolling
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)  # Windows and MacOS
+        canvas.bind_all("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))  # Linux
+        canvas.bind_all("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))  # Linux
+
+        # Sort questions: incorrect first, then correct
+        question_indices = list(range(len(self.questions)))
+
+        # Function to determine if question was answered correctly
+        def was_correct(idx):
+            if idx >= len(self.user_answers):
+                return False  # Unanswered questions are treated as incorrect
+            return self.user_answers[idx] == self.questions[idx]['correct']
+
+        # Sort indices by correctness (incorrect first)
+        question_indices.sort(key=lambda idx: was_correct(idx))
+
+        # Add all questions to the review section in the sorted order
+        for idx in question_indices:
+            q = self.questions[idx]
+            i = idx  # Preserve original question number
+
+            question_card = tk.Frame(
+                inner_frame,
+                bg=self.colors["card_bg"],
+                bd=0,
+                highlightbackground=self.colors["border"],
+                highlightthickness=1,
+                padx=15,
+                pady=15
+            )
+            question_card.pack(fill="x", pady=10)
+
+            # Question header with number and category
+            header_frame = tk.Frame(question_card, bg=self.colors["card_bg"])
+            header_frame.pack(fill="x")
+
+            q_num = tk.Label(
+                header_frame,
+                text=f"Question {i + 1}",
+                font=self.fonts["body"],
+                bg=self.colors["card_bg"],
+                fg=self.colors["primary"]
+            )
+            q_num.pack(side="left")
+
+            category = tk.Label(
+                header_frame,
+                text=f"{q['category']}",
+                font=self.fonts["small"],
+                bg=self.colors["card_bg"],
+                fg=self.colors["light_text"]
+            )
+            category.pack(side="right")
+
+            # Status indicator
+            if i < len(self.user_answers):
+                selected = self.user_answers[i]
+                is_correct = selected == q['correct']
+                status_text = "✓ Correct" if is_correct else "✗ Incorrect"
+                status_color = self.colors["secondary"] if is_correct else self.colors["accent"]
             else:
-                selected_ans = self.user_answers[i]
-                if selected_ans != q['correct']:
-                    missed_frame = tk.Frame(self)
-                    missed_frame.pack(anchor="w", padx=20, pady=5)
+                status_text = "Not Answered"
+                status_color = self.colors["accent"]  # Treat unanswered as incorrect
 
-                    q_label = tk.Label(missed_frame, text=f"Q{i + 1}. {q['question']}", font=("Arial", 12, "bold"))
-                    q_label.pack(anchor="w")
+            status = tk.Label(
+                question_card,
+                text=status_text,
+                font=self.fonts["small"],
+                bg=self.colors["card_bg"],
+                fg=status_color
+            )
+            status.pack(anchor="w", pady=(5, 10))
 
-                    your_ans_text = f"Your answer: {q['options'][selected_ans]}"
-                    your_ans_label = tk.Label(missed_frame, text=your_ans_text, fg="red", font=("Arial", 12))
-                    your_ans_label.pack(anchor="w")
+            # Question text
+            q_text = tk.Label(
+                question_card,
+                text=q["question"],
+                font=self.fonts["body"],
+                wraplength=800,
+                justify="left",
+                bg=self.colors["card_bg"],
+                fg=self.colors["text"]
+            )
+            q_text.pack(anchor="w", pady=(0, 10))
 
-                    correct_label = tk.Label(
-                        missed_frame,
-                        text=f"Correct answer: {q['options'][q['correct']]}",
-                        fg="green", font=("Arial", 12)
-                    )
-                    correct_label.pack(anchor="w")
+            # Show image if there was one
+            if q["category"] == "Signs" and q["image"] and os.path.exists(q["image"]):
+                try:
+                    img = Image.open(q["image"])
+                    img = self.resize_image(img, 150)  # Smaller for review
+                    photo = ImageTk.PhotoImage(img)
+                    self.photos.append(photo)
+                    img_label = tk.Label(question_card, image=photo, bg=self.colors["card_bg"])
+                    img_label.pack(anchor="w", pady=(0, 10))
+                except Exception:
+                    pass
 
+            # Show all answer options, highlighting correct and user answers
+            for j, option_text in enumerate(q["options"]):
+                # Determine option styling based on correctness
+                if j == q["correct"]:
+                    # Correct answer
+                    bg_color = "#1e392a"  # Dark green
+                    fg_color = self.colors["secondary"]
+                    prefix = "✓ "
+                elif i < len(self.user_answers) and j == self.user_answers[i] and j != q["correct"]:
+                    # User's incorrect answer
+                    bg_color = "#3d1e1e"  # Dark red
+                    fg_color = self.colors["accent"]
+                    prefix = "✗ "
+                else:
+                    # Other options
+                    bg_color = self.colors["card_bg"]
+                    fg_color = self.colors["text"]
+                    prefix = ""
+
+                option_frame = tk.Frame(
+                    question_card,
+                    bg=bg_color,
+                    padx=10,
+                    pady=5
+                )
+                option_frame.pack(fill="x", pady=2)
+
+                option_label = tk.Label(
+                    option_frame,
+                    text=f"{prefix}{option_text}",
+                    font=self.fonts["small"],
+                    wraplength=800,
+                    justify="left",
+                    bg=bg_color,
+                    fg=fg_color,
+                    padx=5,
+                    pady=5
+                )
+                option_label.pack(anchor="w")
+
+        # Update the canvas scroll region after all items added
+        inner_frame.update_idletasks()
+        canvas.config(scrollregion=canvas.bbox("all"))
+
+        # Unbind mousewheel on exit
+        def _on_frame_destroy(event):
+            canvas.unbind_all("<MouseWheel>")
+            canvas.unbind_all("<Button-4>")
+            canvas.unbind_all("<Button-5>")
+
+        results_frame.bind("<Destroy>", _on_frame_destroy)
+
+        # Retry button
+        retry_button = tk.Button(
+            results_frame,
+            text="Try Again",
+            font=self.fonts["body"],
+            bg=self.colors["primary"],
+            fg=self.colors["text"],
+            activebackground=self.colors["primary"],
+            activeforeground=self.colors["text"],
+            padx=20,
+            pady=10,
+            bd=0,
+            cursor="hand2",
+            command=self.restart_quiz
+        )
+        retry_button.pack(pady=20)
 
 def get_questions():
     """
@@ -2725,5 +3200,5 @@ def get_questions():
 
 
 if __name__ == "__main__":
-    app = QuizApp()
+    app = ModernQuizApp()
     app.mainloop()
