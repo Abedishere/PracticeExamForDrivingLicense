@@ -6,6 +6,19 @@ import os
 from datetime import timedelta
 
 
+def resize_image(img, max_size):
+    """Resize image maintaining aspect ratio."""
+    width, height = img.size
+    if width > height:
+        new_width = max_size
+        new_height = int(height * max_size / width)
+    else:
+        new_height = max_size
+        new_width = int(width * max_size / height)
+
+    return img.resize((new_width, new_height), Image.LANCZOS)
+
+
 class ModernQuizApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -268,6 +281,7 @@ class ModernQuizApp(tk.Tk):
 
         # Update the UI
         self.option_selected()
+
     def update_timer(self):
         """Updates the countdown timer every second with format MM:SS."""
         mins, secs = divmod(self.time_left, 60)
@@ -316,7 +330,7 @@ class ModernQuizApp(tk.Tk):
                     try:
                         img = Image.open(q["image"])
                         # Resize image maintaining aspect ratio
-                        img = self.resize_image(img, 300)
+                        img = resize_image(img, 300)
                         photo = ImageTk.PhotoImage(img)
                         self.photos.append(photo)  # store reference
                         self.image_label.config(image=photo)
@@ -339,18 +353,6 @@ class ModernQuizApp(tk.Tk):
         else:
             # No more questions
             self.finish_quiz()
-
-    def resize_image(self, img, max_size):
-        """Resize image maintaining aspect ratio."""
-        width, height = img.size
-        if width > height:
-            new_width = max_size
-            new_height = int(height * max_size / width)
-        else:
-            new_height = max_size
-            new_width = int(width * max_size / height)
-
-        return img.resize((new_width, new_height), Image.LANCZOS)
 
     def option_selected(self):
         """Highlights the selected option and enables Next button."""
@@ -386,6 +388,15 @@ class ModernQuizApp(tk.Tk):
         for widget in self.winfo_children():
             widget.destroy()
 
+        # Update statistics for multiple attempts
+        if not hasattr(self, 'total_attempts'):
+            self.total_attempts = 1
+            self.successful_attempts = 1 if self.score >= len(self.questions) * 0.8 else 0
+        else:
+            self.total_attempts += 1
+            if self.score >= len(self.questions) * 0.8:
+                self.successful_attempts += 1
+
         # Create results container
         results_frame = tk.Frame(self, bg=self.colors["bg"], padx=30, pady=30)
         results_frame.pack(fill="both", expand=True)
@@ -419,6 +430,18 @@ class ModernQuizApp(tk.Tk):
             fg=self.colors["text"]
         )
         score_label.pack(anchor="center", pady=(10, 0))
+
+        # Display session statistics only if there's been more than one attempt
+        if self.total_attempts > 1:
+            success_rate = (self.successful_attempts / self.total_attempts) * 100
+            stats_label = tk.Label(
+                header_frame,
+                text=f"Session Statistics: {self.successful_attempts} passed out of {self.total_attempts} attempts ({int(success_rate)}%)",
+                font=self.fonts["body"],
+                bg=self.colors["bg"],
+                fg=self.colors["text"]
+            )
+            stats_label.pack(anchor="center", pady=(5, 0))
 
         if time_up:
             time_label = tk.Label(
@@ -493,7 +516,7 @@ class ModernQuizApp(tk.Tk):
         inner_frame = tk.Frame(canvas, bg=self.colors["card_bg"], padx=20, pady=20)
         canvas.create_window((0, 0), window=inner_frame, anchor="nw")
 
-        # Enable mousewheel scrolling
+        # Add mousewheel scrolling
         def _on_mousewheel(event):
             canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
@@ -646,10 +669,14 @@ class ModernQuizApp(tk.Tk):
 
         results_frame.bind("<Destroy>", _on_frame_destroy)
 
-        # Retry button
+        # Create button frame at the bottom
+        button_frame = tk.Frame(results_frame, bg=self.colors["bg"])
+        button_frame.pack(pady=20, fill="x")
+
+        # Try Again button (same questions) - LEFT SIDE
         retry_button = tk.Button(
-            results_frame,
-            text="Try Again",
+            button_frame,
+            text="Retry These Questions",
             font=self.fonts["body"],
             bg=self.colors["primary"],
             fg=self.colors["text"],
@@ -659,9 +686,150 @@ class ModernQuizApp(tk.Tk):
             pady=10,
             bd=0,
             cursor="hand2",
-            command=self.restart_quiz
+            command=self.retry_quiz
         )
-        retry_button.pack(pady=20)
+        retry_button.pack(side="left", padx=(0, 10))
+
+        # New Test button (new questions) - RIGHT SIDE
+        # Check if restart_quiz exists first and use that directly if it does
+        new_quiz_command = self.restart_quiz if hasattr(self, 'restart_quiz') else self.new_quiz
+
+        new_test_button = tk.Button(
+            button_frame,
+            text="Start New Quiz",
+            font=self.fonts["body"],
+            bg=self.colors["secondary"],
+            fg=self.colors["text"],
+            activebackground=self.colors["secondary"],
+            activeforeground=self.colors["text"],
+            padx=20,
+            pady=10,
+            bd=0,
+            cursor="hand2",
+            command=new_quiz_command
+        )
+        new_test_button.pack(side="right", padx=(10, 0))
+
+    def retry_quiz(self):
+        """Restart the quiz with the same questions."""
+        # Destroy all widgets first
+        for widget in self.winfo_children():
+            widget.destroy()
+
+        # Reset variables but keep the same questions
+        self.current_question = 0
+        self.user_answers = []
+        self.score = 0
+        self.time_left = 15 * 60
+        self.photos = []
+
+        # Recreate UI and start again
+        self.create_widgets()
+        self.display_question()
+        self.update_timer()
+
+    def new_quiz(self):
+        """Start a fresh quiz with new questions."""
+        try:
+            # Destroy all widgets first
+            for widget in self.winfo_children():
+                widget.destroy()
+
+            # Reset all variables
+            self.current_question = 0
+            self.user_answers = []
+            self.score = 0
+            self.time_left = 15 * 60
+            self.photos = []
+
+            # Rather than directly calling load_questions, use restart_quiz if it exists
+            # This is likely what the New Test button was originally using
+            if hasattr(self, 'restart_quiz'):
+                self.restart_quiz()
+            else:
+                # Fallback if restart_quiz doesn't exist
+                self.questions = self.get_new_questions()  # TODO: MAKE THIS METHOD
+                self.create_widgets()
+                self.display_question()
+                self.update_timer()
+        except Exception as e:
+            # Show error message instead of blank screen
+            error_label = tk.Label(
+                self,
+                text=f"Error starting new quiz: {str(e)}\nPlease restart the application.",
+                font=("Helvetica", 14),
+                bg=self.colors["bg"],
+                fg=self.colors["accent"],
+                padx=20,
+                pady=20
+            )
+            error_label.pack(expand=True)
+
+    def get_new_questions(self):
+        """
+        Generates a new set of random questions for the quiz.
+        Returns a list of question dictionaries.
+        """
+        # This method will call the existing get_questions() function
+        # which appears to be a standalone function that returns all available questions
+
+        # Get all available questions
+        all_questions = get_questions()
+
+        # Determine how many questions the quiz should have
+        # Using the length of the previous quiz if available
+        target_question_count = len(self.questions) if hasattr(self, 'questions') else 30
+
+        # Import random for shuffling
+        import random
+
+        # Create a copy of all questions and shuffle them
+        available_questions = all_questions.copy()
+        random.shuffle(available_questions)
+
+        # Select questions up to the target count
+        # If there aren't enough questions, take all available ones
+        new_questions = available_questions[:target_question_count]
+
+        # If we need to maintain category distribution similar to the original quiz:
+        # (This is optional but would make the quiz structure more consistent)
+        if hasattr(self, 'questions') and len(new_questions) < len(available_questions):
+            # Count categories in the original quiz
+            original_categories = {}
+            for q in self.questions:
+                category = q['category']
+                if category not in original_categories:
+                    original_categories[category] = 0
+                original_categories[category] += 1
+
+            # Try to match the original distribution
+            selected_questions = []
+            remaining_by_category = original_categories.copy()
+
+            # First pass: select questions by category to match distribution
+            for q in available_questions:
+                category = q['category']
+                if category in remaining_by_category and remaining_by_category[category] > 0:
+                    selected_questions.append(q)
+                    remaining_by_category[category] -= 1
+
+                # Stop if we've selected enough questions
+                if len(selected_questions) >= target_question_count:
+                    break
+
+            # If we still need more questions, add random ones
+            if len(selected_questions) < target_question_count:
+                # Get questions not already selected
+                unused_questions = [q for q in available_questions if q not in selected_questions]
+                random.shuffle(unused_questions)
+                selected_questions.extend(unused_questions[:target_question_count - len(selected_questions)])
+
+            # If we've successfully created a category-balanced set, use it
+            if len(selected_questions) == target_question_count:
+                new_questions = selected_questions
+
+        return new_questions
+
 
 def get_questions():
     """
