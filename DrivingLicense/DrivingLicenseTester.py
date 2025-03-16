@@ -3182,8 +3182,6 @@ def get_questions():
     while len(safety_pool) < 10:
         safety_pool.append(safety_pool[0])
 
-    # ------------- LAW QUESTIONS POOL (Fill with real data as needed) -------------
-
     # Ensure at least 10 in law_pool
     while len(law_pool) < 10:
         law_pool.append(law_pool[0])
