@@ -2049,8 +2049,6 @@ def get_questions():
 
     ]
 
-    # If you have 80+ sign questions, keep adding them the same way above!
-
     # ------------- SAFETY QUESTIONS POOL (Fill with real data as needed) -------------
 
     safety_pool = [
@@ -2066,7 +2064,8 @@ def get_questions():
             "image": None
         },
         {
-            "question": "The moment you enter your vehicle, you should first perform the following necessary adjustments in order:",
+            "question": "The moment you enter your vehicle, you should first perform the following necessary "
+                        "adjustments in order:",
             "options": [
                 "Fasten the seat belt, adjust the mirrors, and adjust your seat",
                 "Fasten the seat belt, adjust the seat, and adjust the mirrors",
@@ -2104,17 +2103,6 @@ def get_questions():
                 "Increase your speed a little",
                 "Reduce your speed gradually and pull to the side of the road",
                 "Press firmly on the brakes"
-            ],
-            "correct": 1,
-            "category": "Safety",
-            "image": None
-        },
-        {
-            "question": "When strong braking is applied, ABS in modern vehicles:",
-            "options": [
-                "Should not make noise or cause the brake pedal to pulsate",
-                "Would normally make noise and cause the brake pedal to pulsate",
-                "Would normally cause the brake pedal to pulsate"
             ],
             "correct": 1,
             "category": "Safety",
@@ -2187,17 +2175,6 @@ def get_questions():
             "image": None
         },
         {
-            "question": "The driver and passengers should fasten their seat belt:",
-            "options": [
-                "Before turning on the car engine",
-                "Prior to setting off",
-                "After a minute from setting off"
-            ],
-            "correct": 0,
-            "category": "Safety",
-            "image": None
-        },
-        {
             "question": "The driver’s ability to focus is impaired during driving due to:",
             "options": [
                 "Having an abundance in energy",
@@ -2249,17 +2226,6 @@ def get_questions():
                 "Put the gear on neutral, turn off the engine and stop on the side of the road"
             ],
             "correct": 2,
-            "category": "Safety",
-            "image": None
-        },
-        {
-            "question": "If the car hood accidentally releases while driving down the road, you should immediately:",
-            "options": [
-                "Increase your speed a little",
-                "Reduce your speed gradually and pull to the side of the road",
-                "Press firmly on the brakes"
-            ],
-            "correct": 1,
             "category": "Safety",
             "image": None
         },
@@ -2319,7 +2285,8 @@ def get_questions():
             "image": None
         },
         {
-            "question": "The threat that vehicles parked on the right-side pavement bring to drivers passing close to them is:",
+            "question": "The threat that vehicles parked on the right-side pavement bring to drivers passing close to "
+                        "them is:",
             "options": [
                 "The alarm that would go off as the drivers cross next to these vehicles",
                 "The opening of a car trunk",
@@ -2362,17 +2329,7 @@ def get_questions():
             "category": "Safety",
             "image": None
         },
-        {
-            "question": "One of the benefits of ABS in modern vehicles when strong braking is applied, is:",
-            "options": [
-                "Preventing brakes from locking-up and allows the driver to maintain steering control of the vehicle",
-                "Preventing brakes locking-up only",
-                "Not preventing brakes locking-up and not helping the driver maintain steering control of the vehicle"
-            ],
-            "correct": 0,
-            "category": "Safety",
-            "image": None
-        },
+
         {
             "question": "If your vehicle is beginning to lose traction on a slippery surface, you should spontaneously:",
             "options": [
