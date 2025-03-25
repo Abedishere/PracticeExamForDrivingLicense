@@ -1094,7 +1094,7 @@ def get_questions():
                 "Caution, electrical signs",
                 "Caution, roundabout ahead"
             ],
-            "correct": 0,
+            "correct": 1,
             "category": "Signs",
             "image": "images/33.jpg"
         },
@@ -2042,7 +2042,7 @@ def get_questions():
                 "Indirect bend to the left",
                 "Bend ahead"
             ],
-            "correct": 1,  # Status 2 = TRUE
+            "correct": 0,  # Status 2 = TRUE
             "category": "Signs",
             "image": "images/141.jpg"
         },
@@ -2062,6 +2062,72 @@ def get_questions():
                 "Sound the horn"
             ],
             "correct": 1,
+            "category": "Safety",
+            "image": None
+        },
+        {
+            "question": "The moment you enter your vehicle, you should first perform the following necessary adjustments in order:",
+            "options": [
+                "Fasten the seat belt, adjust the mirrors, and adjust your seat",
+                "Fasten the seat belt, adjust the seat, and adjust the mirrors",
+                "Adjust the seat, adjust the mirrors, and fasten the seat belt"
+            ],
+            "correct": 2,
+            "category": "Safety",
+            "image": None
+        },
+        {
+            "question": "The driver and passengers should fasten their seat belt:",
+            "options": [
+                "Before turning on the car engine",
+                "Prior to setting off",
+                "After a minute from setting off"
+            ],
+            "correct": 0,
+            "category": "Safety",
+            "image": None
+        },
+        {
+            "question": "The purpose of the head rest is",
+            "options": [
+                "To rest the head during the car trip",
+                "To protect the neck in a rear end collision",
+                "To be used as a pillow for sleeping during long trips"
+            ],
+            "correct": 1,
+            "category": "Safety",
+            "image": None
+        },
+        {
+            "question": "If the car hood accidentally releases while driving down the road, you should immediately:",
+            "options": [
+                "Increase your speed a little",
+                "Reduce your speed gradually and pull to the side of the road",
+                "Press firmly on the brakes"
+            ],
+            "correct": 1,
+            "category": "Safety",
+            "image": None
+        },
+        {
+            "question": "When strong braking is applied, ABS in modern vehicles:",
+            "options": [
+                "Should not make noise or cause the brake pedal to pulsate",
+                "Would normally make noise and cause the brake pedal to pulsate",
+                "Would normally cause the brake pedal to pulsate"
+            ],
+            "correct": 1,
+            "category": "Safety",
+            "image": None
+        },
+        {
+            "question": "One of the benefits of ABS in modern vehicles when strong braking is applied, is:",
+            "options": [
+                "Preventing brakes from locking-up and allows the driver to maintain steering control of the vehicle",
+                "Preventing brakes locking-up only",
+                "Not preventing brakes locking-up and not helping the driver maintain steering control of the vehicle"
+            ],
+            "correct": 0,
             "category": "Safety",
             "image": None
         },
